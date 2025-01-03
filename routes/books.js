@@ -56,3 +56,5 @@ router.get("/browse/:subject", async (req, res) => {
     res.status(500).send("Error getting books. Please try again.");
   }
 });
+
+module.exports = router;

@@ -6,6 +6,7 @@ require('dotenv').config();
 const db = require('./config/db');
 const membersRouter = require('./routes/members');
 const booksRouter = require('./routes/books');
+const cartRouter = require('./routes/cart');
 
 const app = express();
 const port = process.env.PORT || 3000;
@@ -26,9 +27,10 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
 app.use(cookieParser());
 
-// Basic Route
+// Basic Routes
 app.use('/members', membersRouter);
 app.use('/books', booksRouter);
+app.use('/cart', cartRouter);
 app.get('/', (req, res) => {
     res.send('Welcome to your new Express app!');
 });
