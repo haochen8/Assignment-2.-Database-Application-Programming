@@ -56,14 +56,29 @@ router.post("/login", async (req, res) => {
     );
 
     if (results.length > 0) {
-      res.send('Welcome to the Online Book Store Member Menu:\n1. Browse by Subject\n2. Search by Author/Title\n3. Check Out\n4. Logout');
+      res.send(
+        "Welcome to the Online Book Store Member Menu:\n1. Browse by Subject\n2. Search by Author/Title\n3. Check Out\n4. Logout"
+      );
     } else {
-      res.send('Invalid email or password. Please try again.');
+      res.send("Invalid email or password. Please try again.");
     }
   } catch (error) {
     console.error("Error logging in member", error);
     res.status(500).send("Error logging in member. Please try again.");
   }
+});
+
+router.post("/logout", (req, res) => {
+  req.session.destroy((err) => {
+    if (err) {
+      console.error("Error logging out:", err.message);
+      res.status(500).send("Error logging out. Please try again.");
+    } else {
+      res.send(
+        "You have successfully logged out. Returning to the login page."
+      );
+    }
+  });
 });
 
 module.exports = router;
