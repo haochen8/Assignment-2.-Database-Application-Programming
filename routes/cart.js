@@ -6,21 +6,37 @@ const db = require("../config/db");
 router.post("/add", async (req, res) => {
   const { userid, isbn, quantity } = req.body;
 
+  if (!userid || !isbn || !quantity) {
+    return res
+      .status(400)
+      .json({ message: "Missing userid, isbn, or quantity in request body." });
+  }
+
   try {
     await db.query(
       "INSERT INTO cart (userid, isbn, qty) VALUES (?, ?, ?) ON DUPLICATE KEY UPDATE qty = qty + ?",
       [userid, isbn, quantity, quantity]
     );
-    res.send(`Book with ISBN ${isbn} added to the cart successfully.`);
+    res.json({
+      message: `Book with ISBN ${isbn} added to the cart successfully.`,
+    });
   } catch (error) {
     console.error("Error adding book to cart", error);
-    res.status(500).send("Error adding book to cart. Please try again.");
+    res
+      .status(500)
+      .json({ message: "Error adding book to cart. Please try again." });
   }
 });
 
 // View Cart
 router.get("/view", async (req, res) => {
   const { userid } = req.query;
+
+  if (!userid) {
+    return res
+      .status(400)
+      .json({ message: "Missing userid in request query." });
+  }
 
   try {
     const [cartItems] = await db.query(
@@ -32,8 +48,7 @@ router.get("/view", async (req, res) => {
     );
 
     if (cartItems.length === 0) {
-      res.send("Your cart is empty.");
-      return;
+      return res.status(204).json({ message: "Your cart is empty." });
     }
 
     res.json({
@@ -42,7 +57,7 @@ router.get("/view", async (req, res) => {
     });
   } catch (err) {
     console.error("Error fetching cart:", err.message);
-    res.status(500).send("Error fetching cart. Please try again.");
+    res.status(500).json({ message: "Error fetching cart. Please try again." });
   }
 });
 
@@ -50,18 +65,21 @@ router.get("/view", async (req, res) => {
 router.post("/checkout", async (req, res) => {
   const { userid } = req.body;
 
+  if (!userid) {
+    return res.status(400).json({ message: "Missing userid in request body." });
+  }
+
   try {
     const [cartItems] = await db.query(
-      `SELECT c.isbn, b.price, c.qty, (b.price * c.qty) AS total 
-           FROM cart c 
-           JOIN books b ON c.isbn = b.isbn 
-           WHERE c.userid = ?`,
+      `SELECT c.isbn, b.title, b.price, c.qty, (b.price * c.qty) AS total 
+       FROM cart c 
+       JOIN books b ON c.isbn = b.isbn 
+       WHERE c.userid = ?`,
       [userid]
     );
 
     if (cartItems.length === 0) {
-      res.send("Your cart is empty.");
-      return;
+      return res.status(204).json({ message: "Your cart is empty." });
     }
 
     const totalAmount = cartItems.reduce((sum, item) => sum + item.total, 0);
@@ -81,10 +99,9 @@ router.post("/checkout", async (req, res) => {
       item.qty,
       item.total,
     ]);
-    await db.query(
-      "INSERT INTO orderdetails (ono, isbn, qty, amount) VALUES ?",
-      [orderDetails]
-    );
+    await db.query("INSERT INTO odetails (ono, isbn, qty, amount) VALUES ?", [
+      orderDetails,
+    ]);
 
     // Clear the cart
     await db.query("DELETE FROM cart WHERE userid = ?", [userid]);
@@ -99,7 +116,9 @@ router.post("/checkout", async (req, res) => {
     });
   } catch (err) {
     console.error("Error during checkout:", err.message);
-    res.status(500).send("Error during checkout. Please try again.");
+    res
+      .status(500)
+      .json({ message: "Error during checkout. Please try again." });
   }
 });
 

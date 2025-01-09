@@ -9,19 +9,25 @@ router.get("/browse", async (req, res) => {
       "SELECT DISTINCT subject FROM books ORDER BY subject ASC"
     );
 
-    res.json({
+    const response = {
       message: "Choose a subject from the list below:",
-      subjects: subjects.map((row, index) => `${index + 1}. ${row.subject}`),
-    });
+      subjects: subjects.map((row) => row.subject),
+    };
+
+    console.log("Subjects response:", response); // Log the response
+    res.json(response);
   } catch (error) {
     console.error("Error fetching subjects", error);
-    res.status(500).send("Error getting subjects. Please try again.");
+    res
+      .status(500)
+      .json({ message: "Error getting subjects. Please try again." });
   }
 });
 
 // Browse books within a subject
 router.get("/browse/:subject", async (req, res) => {
-  const { subject } = req.params;
+  const subject = decodeURIComponent(req.params.subject);
+  console.log("Received subject:", subject); // Log the decoded subject
   const { page = 1 } = req.query;
   const limit = 2;
   const offset = (page - 1) * limit;
@@ -31,9 +37,9 @@ router.get("/browse/:subject", async (req, res) => {
       "SELECT * FROM books WHERE subject = ? LIMIT ? OFFSET ?",
       [subject, limit, offset]
     );
-
+    console.log("Books found:", books); // Log the books retrieved
     if (books.length === 0) {
-      res.send("No more books available for this subject.");
+      res.json({ message: "No more books available for this subject." });
       return;
     }
 
@@ -54,7 +60,7 @@ router.get("/browse/:subject", async (req, res) => {
     });
   } catch (error) {
     console.error("Error fetching books", error);
-    res.status(500).send("Error getting books. Please try again.");
+    res.status(500).json({ message: "Error getting books. Please try again." });
   }
 });
 
@@ -72,7 +78,7 @@ router.get("/search", async (req, res) => {
     } else {
       return res
         .status(400)
-        .send('Invalid search type. Use "author" or "title".');
+        .json({ message: 'Invalid search type. Use "author" or "title".' });
     }
 
     const [books] = await db.query(searchQuery, [`%${query}%`, limit, offset]);
@@ -94,7 +100,9 @@ router.get("/search", async (req, res) => {
     });
   } catch (err) {
     console.error("Error searching books:", err.message);
-    res.status(500).send("Error searching books. Please try again.");
+    res
+      .status(500)
+      .json({ message: "Error searching books. Please try again." });
   }
 });
 

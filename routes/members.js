@@ -23,25 +23,24 @@ router.get("/", async (req, res) => {
 
 // POST to add a new member
 router.post("/register", async (req, res) => {
-  const { fname, lname, address, city, state, zip, phone, email, password } =
-    req.body;
+  const { fname, lname, address, city, zip, phone, email, password } = req.body;
 
   try {
     await db.query(
       "INSERT INTO Members (fname, lname, address, city, zip, phone, email, password) VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
-      [fname, lname, address, city, state, phone, email, password]
+      [fname, lname, address, city, zip, phone, email, password]
     );
-    res.send(
+    res.json(
       "You have registered successfully!\nPress Enter to go back to Menu."
     );
   } catch (error) {
     console.error("Error registering member", error);
     if (error.code === "ER_DUP_ENTRY") {
-      return res.status(400).send({
+      return res.status(400).json({
         error: "Email already exists. Please try again.",
       });
     }
-    res.status(500).send("Error registering member. Please try again.");
+    res.status(500).json("Error registering member. Please try again.");
   }
 });
 
@@ -56,27 +55,38 @@ router.post("/login", async (req, res) => {
     );
 
     if (results.length > 0) {
-      res.send(
-        "Welcome to the Online Book Store Member Menu:\n1. Browse by Subject\n2. Search by Author/Title\n3. Check Out\n4. Logout"
-      );
-    } else {
-      res.send("Invalid email or password. Please try again.");
+      const user = results[0];
+
+      if (user.password === password) {
+        res.json({
+          message: "You have successfully logged in!",
+          userid: user.userid,
+          fname: user.fname,
+          lname: user.lname,
+        });
+      } else {
+        res
+          .status(401)
+          .json({ message: "Invalid email or password. Please try again." });
+      }
     }
   } catch (error) {
     console.error("Error logging in member", error);
-    res.status(500).send("Error logging in member. Please try again.");
+    res.status(500).json({ message: "Error logging in. Please try again." });
   }
 });
 
 router.post("/logout", (req, res) => {
+  if (!req.session) {
+    return res.status(400).json({ message: "You are not logged in." });
+  }
+
   req.session.destroy((err) => {
     if (err) {
       console.error("Error logging out:", err.message);
-      res.status(500).send("Error logging out. Please try again.");
+      res.status(500).json({ message: "Error logging out. Please try again." });
     } else {
-      res.send(
-        "You have successfully logged out. Returning to the login page."
-      );
+      res.json({ message: "You have successfully logged out." });
     }
   });
 });
